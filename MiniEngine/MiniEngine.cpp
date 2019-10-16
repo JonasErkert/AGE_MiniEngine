@@ -1,21 +1,86 @@
-// MiniEngine.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
 #include "pch.h"
 #include <iostream>
+#include <Windows.h>
 
-int main()
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 {
-    std::cout << "Hello World!\n"; 
+	switch (uMessage)
+	{
+	case WM_SIZE:
+		// TODO: Recalculate render resolution
+		break;
+	case WM_KEYDOWN:
+		break;
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+	default:
+		return DefWindowProc(hwnd, uMessage, wParam, lParam);
+	}
+
+	return 0;
 }
 
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
+int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPreviousInstance, LPWSTR lpCmdLine, int nCmdShow)
+{
+	WNDCLASSA windows_class = { 0 };
+	windows_class.lpfnWndProc = WindowProc; // Callback function of windows
+	windows_class.lpszClassName = "MiniEngine";
+	windows_class.style = CS_HREDRAW | CS_VREDRAW;
+	RegisterClassA(&windows_class);
 
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
+	HWND hwnd = CreateWindowA(
+		windows_class.lpszClassName, // Window name (identical with class name)
+		windows_class.lpszClassName, // Class name
+		WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, CW_USEDEFAULT, // Left upper corner in pixels => Windows decides, where to place the window
+		CW_USEDEFAULT, CW_USEDEFAULT, // Width and height of the window => Windows decides, how big the window is
+		HWND_DESKTOP, // The window is a sub-window of the desktop
+		NULL, // Handle of the menu, doesn't exist => NULL
+		hInstance,
+		0 // No window generating data
+	);
+
+	if (!hwnd)
+	{
+		MessageBoxA(NULL, "Create Window failed!", "MiniEngine", NULL);
+		return 1;
+	}
+
+	ShowWindow(hwnd, SW_SHOW);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Init
+
+	//////////////////////////////////////////////////////////////////////////
+	// Tick
+	bool bQuit = false;
+
+	do
+	{
+		MSG msg;
+		// In if only one message per tick gets computed,
+		// in while all messages are computed
+		if (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
+		{
+			if (msg.message == WM_QUIT)
+			{
+				bQuit = true;
+			}
+			else
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
+		}
+		else
+		{
+			// TODO: Call Vulkan or DirectX 12 tick
+		}
+	} while (!bQuit);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Fini
+
+	return 0;
+}
