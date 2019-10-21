@@ -2,6 +2,10 @@
 #include <iostream>
 #include <Windows.h>
 
+#include "CDirectX12Base.h"
+
+#define DX12
+
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMessage)
@@ -49,8 +53,15 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPreviousInstance, LPWSTR l
 
 	ShowWindow(hwnd, SW_SHOW);
 
+#ifdef DX12
+	CDirectX12Base dx12Base; // Instance of DirectX12 module
+#else
+	CVulkanBase vulkanBase;
+#endif // DX12
+
 	//////////////////////////////////////////////////////////////////////////
 	// Init
+	dx12Base.Init();
 
 	//////////////////////////////////////////////////////////////////////////
 	// Tick
@@ -75,12 +86,13 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPreviousInstance, LPWSTR l
 		}
 		else
 		{
-			// TODO: Call Vulkan or DirectX 12 tick
+			dx12Base.Tick();
 		}
 	} while (!bQuit);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Fini
+	dx12Base.Fini();
 
 	return 0;
 }
