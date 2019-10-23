@@ -19,9 +19,14 @@ public:
 	void Tick();
 	void Fini();
 
+	/** Checks the hardware and selects the best adapter. */
+	int CheckAdapter();
+
 private:
 	ID3D12Device* m_pDevice = nullptr; // Pointer to the entire dx system
 	IDXGIFactory2* m_pFactory = nullptr;
 	IDXGISwapChain3* m_pSwapChain = nullptr;
+
+	IDXGIAdapter1* m_pAdapter; // Hardware, the graphics card
 };
 
