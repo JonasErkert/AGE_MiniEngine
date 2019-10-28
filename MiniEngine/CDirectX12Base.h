@@ -1,4 +1,5 @@
 #pragma once
+#define _CRT_SECURE_NO_WARNINGS
 
 #include <d3d12.h>		// DirectX12 base functions
 #include <dxgi1_2.h>	// Math functions of DX12 => dxgi.lib
@@ -20,13 +21,12 @@ public:
 	void Fini();
 
 	/** Checks the hardware and selects the best adapter. */
-	int CheckAdapter();
+	void CheckAdapter();
 
 private:
 	ID3D12Device* m_pDevice = nullptr; // Pointer to the entire dx system
 	IDXGIFactory2* m_pFactory = nullptr;
 	IDXGISwapChain3* m_pSwapChain = nullptr;
-
-	IDXGIAdapter1* m_pAdapter; // Hardware, the graphics card
+	IDXGIAdapter1* m_pAdapterBest = nullptr; // Hardware, the graphics card
 };
 

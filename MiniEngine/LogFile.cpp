@@ -35,7 +35,7 @@ void LogPut(LPCSTR szMsg, bool bWriteLn, bool bTime)
 			SYSTEMTIME systemtime;
 			GetLocalTime(&systemtime);
 			char szTime[80];
-			sprintf(szTime, "%u.%u.%u %u:%u:%u.%u",
+			sprintf(szTime, "%u.%u.%u %u:%u:%u.%u: ",
 				systemtime.wDay, systemtime.wMonth, systemtime.wYear,
 				systemtime.wHour, systemtime.wMinute, systemtime.wSecond);
 			fputs(szTime, g_pFileLog);
