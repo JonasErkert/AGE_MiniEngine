@@ -10,13 +10,15 @@
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3dCompiler.lib")
 
+#define FRAMES 3 // 2 back buffer and 1 front buffer
+
 class CDirectX12Base
 {
 public:
 	CDirectX12Base();
 	~CDirectX12Base();
 
-	void Init();
+	void Init(HWND hwnd);
 	void Tick();
 	void Fini();
 
@@ -25,8 +27,14 @@ public:
 
 private:
 	ID3D12Device* m_pDevice = nullptr; // Pointer to the entire dx system
-	IDXGIFactory2* m_pFactory = nullptr;
+	IDXGIFactory2* m_pFactory = nullptr; // A factory can produce other DX objects
 	IDXGISwapChain3* m_pSwapChain = nullptr;
 	IDXGIAdapter1* m_pAdapterBest = nullptr; // Hardware, the graphics card
+	ID3D12CommandQueue* m_pCommandListQueue = nullptr; // Command list for the instructions of the graphics card
+	D3D12_VIEWPORT m_viewport = { 0 }; // Rendering area
+	D3D12_RECT m_rectScissor = { 0 }; // The scissor can be used to mask parts of the viewport
+	ID3D12DescriptorHeap* m_pDescriptorHeap = nullptr; // Descriptor heap for intern buffers
+	ID3D12Resource* m_paResourceRtv[FRAMES]; // Array of resources for the front- and back buffers
+	D3D12_CPU_DESCRIPTOR_HANDLE m_aCpuDescriptorHandle[FRAMES]; // Handle for the CPU
+	ID3D12CommandAllocator* m_paCommandAllocator[FRAMES];
 };
-

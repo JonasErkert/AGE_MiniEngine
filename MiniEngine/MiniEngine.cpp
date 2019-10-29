@@ -6,6 +6,8 @@
 
 #define DX12
 
+bool bQuit = false;
+
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMessage)
@@ -16,6 +18,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMessage, WPARAM wParam, LPARAM lPar
 	case WM_KEYDOWN:
 		break;
 	case WM_DESTROY:
+		bQuit = true;
 		PostQuitMessage(0);
 		break;
 	default:
@@ -61,11 +64,10 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPreviousInstance, LPWSTR l
 
 	//////////////////////////////////////////////////////////////////////////
 	// Init
-	dx12Base.Init();
+	dx12Base.Init(hwnd);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Tick
-	bool bQuit = false;
 
 	do
 	{
