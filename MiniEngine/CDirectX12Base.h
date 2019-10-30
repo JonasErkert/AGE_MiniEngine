@@ -28,7 +28,7 @@ public:
 private:
 	ID3D12Device* m_pDevice = nullptr; // Pointer to the entire dx system
 	IDXGIFactory2* m_pFactory = nullptr; // A factory can produce other DX objects
-	IDXGISwapChain3* m_pSwapChain = nullptr;
+	IDXGISwapChain3* m_pSwapChain = nullptr; // A swapchain consists of n backbuffers and 1 frontbuffer
 	IDXGIAdapter1* m_pAdapterBest = nullptr; // Hardware, the graphics card
 	ID3D12CommandQueue* m_pCommandListQueue = nullptr; // Command list for the instructions of the graphics card
 	D3D12_VIEWPORT m_viewport = { 0 }; // Rendering area
@@ -36,5 +36,6 @@ private:
 	ID3D12DescriptorHeap* m_pDescriptorHeap = nullptr; // Descriptor heap for intern buffers
 	ID3D12Resource* m_paResourceRtv[FRAMES]; // Array of resources for the front- and back buffers
 	D3D12_CPU_DESCRIPTOR_HANDLE m_aCpuDescriptorHandle[FRAMES]; // Handle for the CPU
-	ID3D12CommandAllocator* m_paCommandAllocator[FRAMES];
+	ID3D12CommandAllocator* m_paCommandAllocator[FRAMES]; // Allocation helper for the command queue
+	ID3D12RootSignature* m_pRootSignature = nullptr; // Identifies the render pass
 };

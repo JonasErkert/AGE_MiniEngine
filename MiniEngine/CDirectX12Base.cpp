@@ -66,6 +66,8 @@ void CDirectX12Base::Init(HWND hwnd)
 	hresult = m_pDevice->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&m_pDescriptorHeap));
 	LOG_CHECK_MSG("CreateDescriptorHeap", hresult);
 
+	// Create Swapchain
+
 	// Size of the incrementSize varies depending on the vendor (AMD, NVdia, Intel) => Query it
 	// Get number of bytes for a heap, which is suitable for RTVs
 	size_t sizetDescriptorSize = m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
@@ -85,6 +87,72 @@ void CDirectX12Base::Init(HWND hwnd)
 		hresult = m_pDevice->CreateCommandAllocator(
 			commandQueueDesc.Type, IID_PPV_ARGS(&m_paCommandAllocator[uFrame]));
 		LOG_CHECK_MSG("CreateCommandAllocator", hresult);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Compile and bind shader
+	// TODO
+	ID3DBlob* pBlobVertexShader = nullptr;
+	ID3DBlob* pBlobPixelShader = nullptr;
+
+	//////////////////////////////////////////////////////////////////////////
+	// Configure render pipeline
+	D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc;
+	rootSignatureDesc.NumParameters = 0;
+	rootSignatureDesc.pParameters = 0;
+	rootSignatureDesc.NumStaticSamplers = 0;
+	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+	// A blob is a undefined part buffer
+	ID3DBlob* pBlobRootSignature = nullptr;
+	ID3DBlob* pBlobRootSignatureError = nullptr;
+
+	hresult = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1,
+		&pBlobRootSignatureError, &pBlobRootSignatureError);
+	LOG_CHECK_MSG("D3D12SerializeRoorSignature", hresult);
+
+	hresult = m_pDevice->CreateRootSignature(0, pBlobRootSignature->GetBufferPointer(),
+		pBlobRootSignature->GetBufferSize(), IID_PPV_ARGS(&m_pRootSignature));
+	LOG_CHECK_MSG("CrateRootSignature", hresult);
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineStateDesc = { 0 };
+	pipelineStateDesc.VS.pShaderBytecode	= pBlobVertexShader->GetBufferPointer();
+	pipelineStateDesc.VS.BytecodeLength		= pBlobVertexShader->GetBufferSize();
+	pipelineStateDesc.PS.pShaderBytecode	= pBlobPixelShader->GetBufferPointer();
+	pipelineStateDesc.PS.BytecodeLength		= pBlobPixelShader->GetBufferSize();
+	pipelineStateDesc.pRootSignature		= m_pRootSignature;
+	pipelineStateDesc.BlendState.AlphaToCoverageEnable = FALSE;
+	pipelineStateDesc.BlendState.IndependentBlendEnable = FALSE;
+
+	for (int i = 0; i < 8; i++)
+	{
+		pipelineStateDesc.BlendState.RenderTarget[i].BlendEnable	= FALSE; // No transparency
+		pipelineStateDesc.BlendState.RenderTarget[i].LogicOpEnable	= FALSE;
+		pipelineStateDesc.BlendState.RenderTarget[i].SrcBlend		= D3D12_BLEND_ONE;
+		pipelineStateDesc.BlendState.RenderTarget[i].DestBlend		= D3D12_BLEND_ZERO;
+		pipelineStateDesc.BlendState.RenderTarget[i].BlendOp		= D3D12_BLEND_OP_ADD;
+		pipelineStateDesc.BlendState.RenderTarget[i].SrcBlendAlpha	= D3D12_BLEND_ONE;
+		pipelineStateDesc.BlendState.RenderTarget[i].DestBlendAlpha	= D3D12_BLEND_ZERO;
+		pipelineStateDesc.BlendState.RenderTarget[i].BlendOpAlpha	= D3D12_BLEND_OP_ADD;
+		pipelineStateDesc.BlendState.RenderTarget[i].LogicOp		= D3D12_LOGIC_OP_NOOP;
+		pipelineStateDesc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+		// Draw triangles solid. Alternative: D3D12_FILL_MODE_WIREFRAME
+		pipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+		// Only for left handed systems: D3D12_CULL_MODE_FRONT
+		pipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; // Later: D3D12_CULL_MODE_BACK
+		// TRUE for right handed systems
+		pipelineStateDesc.RasterizerState.FrontCounterClockwise = TRUE;
+		// Shadow mapping
+		pipelineStateDesc.RasterizerState.DepthBias = 0;
+		pipelineStateDesc.RasterizerState.DepthBiasClamp = 0.f;
+		pipelineStateDesc.RasterizerState.SlopeScaledDepthBias = 0.f;
+		// Occlude hidden objects, consider z-Buffer
+		pipelineStateDesc.RasterizerState.DepthClipEnable = TRUE;
+		pipelineStateDesc.RasterizerState.MultisampleEnable = FALSE;
+		// Enable anti aliasing? No wire frame -> FALSE
+		pipelineStateDesc.RasterizerState.AntialiasedLineEnable = FALSE;
+		pipelineStateDesc.RasterizerState.ForcedSampleCount = 0;
 	}
 }
 
