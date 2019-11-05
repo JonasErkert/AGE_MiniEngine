@@ -38,4 +38,5 @@ private:
 	D3D12_CPU_DESCRIPTOR_HANDLE m_aCpuDescriptorHandle[FRAMES]; // Handle for the CPU
 	ID3D12CommandAllocator* m_paCommandAllocator[FRAMES]; // Allocation helper for the command queue
 	ID3D12RootSignature* m_pRootSignature = nullptr; // Identifies the render pass
+	ID3D12PipelineState* m_pPipelineState = nullptr; // Status of the render pipeline
 };

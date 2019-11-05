@@ -3,9 +3,11 @@
 
 FILE* g_pFileLog = nullptr;
 
+#define LOG_SAVE_PATH ".\\logs\\LogME.txt"
+
 void LogStart(LPCSTR szMsg)
 {
-	g_pFileLog = fopen("C:\\Users\\Jonas\\Documents\\Programmieren\\MiniEngine\\LogME.txt", "w");
+	g_pFileLog = fopen(LOG_SAVE_PATH, "w");
 
 	if (g_pFileLog)
 	{
@@ -26,7 +28,7 @@ void LogStart(LPCSTR szMsg)
 
 void LogPut(LPCSTR szMsg, bool bWriteLn, bool bTime)
 {
-	g_pFileLog = fopen("C:\\Users\\Jonas\\Documents\\Programmieren\\MiniEngine\\LogME.txt", "a");
+	g_pFileLog = fopen(LOG_SAVE_PATH, "a");
 
 	if (g_pFileLog)
 	{
