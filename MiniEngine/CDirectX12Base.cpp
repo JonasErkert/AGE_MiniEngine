@@ -98,12 +98,12 @@ void CDirectX12Base::Init(HWND hwnd)
 #endif
 
 	ID3DBlob* pBlobVertexShader = nullptr;
-	hresult = D3DCompileFromFile(L"shaders//vertexShader.hlsl", 0, 0,
+	hresult = D3DCompileFromFile(L"shaders//vertexshader.hlsl", 0, 0,
 		"main", "vs_5_0", compilerFlags, 0, &pBlobVertexShader, 0);
 	LOG_CHECK_MSG("D3DCompileFromFile(VS)", hresult);
 
 	ID3DBlob* pBlobPixelShader = nullptr;
-	hresult = D3DCompileFromFile(L"shaders//vertexShader.hlsl", 0, 0,
+	hresult = D3DCompileFromFile(L"shaders//pixelshader.hlsl", 0, 0,
 		"main", "ps_5_0", compilerFlags, 0, &pBlobPixelShader, 0);
 	LOG_CHECK_MSG("D3DCompileFromFile(PS)", hresult);
 
