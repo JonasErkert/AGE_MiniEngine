@@ -224,7 +224,38 @@ void CDirectX12Base::Tick()
 	
 	// Enter root signature
 	pCommandList->SetGraphicsRootSignature(m_pRootSignature);
+	pCommandList->SetPipelineState(m_pPipelineState);
+	// Type of the topology (Trianglelist, Trianglestrip, Triangletable, Bezierpatches)
+	pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	// Set the render targets
+	// Param 1: Number of instructions
+	// Param 2: Handle for the cpu to access the render target
+	// Param 3: Descriptor range
+	// Param 4: Depth stencil descriptor
+	pCommandList->OMSetRenderTargets(1, &cpuDescrHandle, 0, 0);
+	// Draw a triangle
+	// Param 1: Number of vertices
+	// Param 2: Instance counter (how many instances of it to draw)
+	// Param 3: Seldom used, only for pros
+	pCommandList->DrawInstanced(3, 1, 0, 0);
+	// Free the resource of the render target for other threads
+	pCommandList->ResourceBarrier(1, &resourceBarrierOne);
+	pCommandList->Close();
 
+	//////////////////////////////////////////////////////////////////////////
+	// List is now filled and closed -> Let it do it's job
+	// There are probably multiple lists, therefore enter the list into an array
+	ID3D12CommandList* aCommandList[] = { pCommandList };
+
+	// Execute command list
+	m_pCommandListQueue->ExecuteCommandLists(1, aCommandList);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Swap back buffer and front buffer according to the rotation principle
+	m_pSwapChain->Present(1, 0);
+
+	// Free command list again or garbage will be collected
+	pCommandList->Release();
 }
 
 void CDirectX12Base::Fini()
