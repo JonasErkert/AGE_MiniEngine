@@ -88,6 +88,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPreviousInstance, LPWSTR l
 		}
 		else
 		{
+			SetWindowTextA(hwnd, "MiniEngine");
 			dx12Base.Tick();
 		}
 	} while (!bQuit);
