@@ -3,8 +3,9 @@
 #include <Windows.h>
 
 #include "CDirectX12Base.h"
+#include "VulkanBase.h"
 
-#define DX12
+//#define DX12
 
 bool bQuit = false;
 
@@ -56,15 +57,15 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPreviousInstance, LPWSTR l
 
 	ShowWindow(hwnd, SW_SHOW);
 
-#ifdef DX12
-	CDirectX12Base dx12Base; // Instance of DirectX12 module
-#else
-	CVulkanBase vulkanBase;
-#endif // DX12
-
 	//////////////////////////////////////////////////////////////////////////
 	// Init
-	dx12Base.Init(hwnd);
+#ifdef DX12
+	CDirectX12Base base; // Instance of DirectX12 module
+	base.Init(hwnd);
+#else
+	CVulkanBase base;
+	base.Init();
+#endif // DX12
 
 	//////////////////////////////////////////////////////////////////////////
 	// Tick
@@ -89,13 +90,13 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPreviousInstance, LPWSTR l
 		else
 		{
 			SetWindowTextA(hwnd, "MiniEngine");
-			dx12Base.Tick();
+			base.Tick();
 		}
 	} while (!bQuit);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Fini
-	dx12Base.Fini();
+	base.Fini();
 
 	return 0;
 }

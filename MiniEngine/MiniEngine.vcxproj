@@ -152,11 +152,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CDirectX12Base.h" />
+    <ClInclude Include="VulkanBase.h" />
     <ClInclude Include="LogFile.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CDirectX12Base.cpp" />
+    <ClCompile Include="VulkanBase.cpp" />
     <ClCompile Include="LogFile.cpp" />
     <ClCompile Include="MiniEngine.cpp" />
     <ClCompile Include="pch.cpp">
