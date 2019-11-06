@@ -212,7 +212,7 @@ void CDirectX12Base::Tick()
 	D3D12_CPU_DESCRIPTOR_HANDLE cpuDescrHandle = m_aCpuDescriptorHandle[uFrame];
 
 	// Place the command to color the background into the command list
-	float afClearColor[4] = { 0.f, 0.f, 0.f, 1.f }; // black
+	float afClearColor[4] = { 1.0f, 0.f, 0.f, 1.f }; // Red
 	pCommandList->ClearRenderTargetView(cpuDescrHandle, afClearColor, 0, 0);
 
 	// Viewport and scissor size
@@ -237,7 +237,7 @@ void CDirectX12Base::Tick()
 	// Param 1: Number of vertices
 	// Param 2: Instance counter (how many instances of it to draw)
 	// Param 3: Seldom used, only for pros
-	pCommandList->DrawInstanced(3, 1, 0, 0);
+	pCommandList->DrawInstanced(9, 1, 0, 0);
 	// Free the resource of the render target for other threads
 	pCommandList->ResourceBarrier(1, &resourceBarrierOne);
 	pCommandList->Close();
