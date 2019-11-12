@@ -14,7 +14,7 @@ CDirectX12Base::~CDirectX12Base()
 
 void CDirectX12Base::Init(HWND hwnd)
 {
-	LogStart("");
+	LogStart("DirectX MiniEngine Logfile", LogSource::DirectX);
 	
 	HRESULT hresult;
 

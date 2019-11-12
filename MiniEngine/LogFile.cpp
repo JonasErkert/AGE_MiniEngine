@@ -2,12 +2,12 @@
 #include "LogFile.h"
 
 FILE* g_pFileLog = nullptr;
+const char* g_path;
 
-#define LOG_SAVE_PATH ".\\logs\\LogME.txt"
-
-void LogStart(LPCSTR szMsg)
+void LogStart(LPCSTR szMsg, LogSource logSource)
 {
-	g_pFileLog = fopen(LOG_SAVE_PATH, "w");
+	g_path = logSource == LogSource::DirectX ? ".\\logs\\LogDX.txt" : ".\\logs\\LogVulkan.txt";
+	g_pFileLog = fopen(g_path, "w");
 
 	if (g_pFileLog)
 	{
@@ -23,12 +23,11 @@ void LogStart(LPCSTR szMsg)
 	LogPut("MINI ENGINE", true, false);
 	LogPut("-----------------------", true, false);
 	LogPut("", true);
-
 }
 
 void LogPut(LPCSTR szMsg, bool bWriteLn, bool bTime)
 {
-	g_pFileLog = fopen(LOG_SAVE_PATH, "a");
+	g_pFileLog = fopen(g_path, "a");
 
 	if (g_pFileLog)
 	{
