@@ -1,4 +1,6 @@
 #pragma once
+#define _CRT_SECURE_NO_WARNINGS
+
 #include "C:\\VulkanSDK\\1.1.121.2\Include\vulkan\vulkan.h"
 
 #define VK_NO_PROPERTIES
@@ -45,7 +47,8 @@ private:
 	// Logic device, an abstraction of the hardware
 	// (Contrary to the physical device)
 	VkDevice m_device;
-	VkPhysicalDevice* m_pPhysicalDevice = nullptr;
+	// Physical Device (graphics card)
+	VkPhysicalDevice* m_pPhysicalDevices = nullptr;
 
 	// Structs for the command lists
 	VkQueue m_queue;

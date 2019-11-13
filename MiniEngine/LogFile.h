@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #define LOG_CHECK_MSG(msg, r) if(r==E_FAIL){LogDebug("Error in %s", msg);}
+#define LOG_CHECK_MSG_VK(msg, r) if(r!=VK_SUCCESS){LogDebug("Error in %s", msg);}
 
 enum class LogSource
 {
