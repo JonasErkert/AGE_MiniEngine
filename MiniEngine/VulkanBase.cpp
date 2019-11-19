@@ -5,7 +5,7 @@
 
 //////////////////////////////////////////////////////////////////////////
 // Callback routine for API for debugging purposes
-VKAPI_ATTR VkBool32 VKAPI_CALL CallDebugReport
+VKAPI_ATTR VkBool32 VKAPI_CALL CallbackDebugReport
 (
 	VkDebugReportFlagsEXT flags,
 	VkDebugReportObjectTypeEXT objectType,
@@ -31,8 +31,15 @@ CVulkanBase::~CVulkanBase()
 {
 }
 
+#ifdef _WIN32
+void CVulkanBase::Init(HWND hwnd, HINSTANCE hinstance)
+{
+	m_hwnd = hwnd;
+	m_hinstance = hinstance;
+#else
 void CVulkanBase::Init()
 {
+#endif
 	CreateLog();
 	CreateInstance();
 	CheckHardware();
@@ -172,12 +179,82 @@ void CVulkanBase::CheckHardware()
 
 void CVulkanBase::CreateExtensions()
 {
+	VkResult result;
+	*(void**)&m_vkCreateDebugReportCallbackEXT = vkGetInstanceProcAddr(
+		m_instance, "vkCreateDebugReportCallbackEXT");
 
+	*(void**)&m_vkDestroyDebugReportCallbackEXT = vkGetInstanceProcAddr(
+		m_instance, "vkDestroyDebugReportCallbackEXT");
+
+	*(void**)&m_vkDebugReportCallbackEXT = vkGetInstanceProcAddr(
+		m_instance, "vkDebugReportMessageEXT");
+
+	VkDebugReportCallbackCreateInfoEXT callbackCreateInfo = {};
+	callbackCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
+	callbackCreateInfo.pNext = nullptr;
+	callbackCreateInfo.flags =	VK_DEBUG_REPORT_ERROR_BIT_EXT |
+								VK_DEBUG_REPORT_WARNING_BIT_EXT |
+								VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
+	callbackCreateInfo.pfnCallback = &CallbackDebugReport;
+	callbackCreateInfo.pUserData = nullptr;
+
+	result = m_vkCreateDebugReportCallbackEXT(m_instance, &callbackCreateInfo, 
+		nullptr, &m_debugReportCallbackEXT);
+	LOG_CHECK_MSG_VK("vkCreateDebugReportCallbackEXT", result);
 }
 
 void CVulkanBase::CreateSurface()
 {
+#ifdef _WIN32
+	VkResult result;
+	VkWin32SurfaceCreateInfoKHR win32CreateSurfaceInfo = {};
+	win32CreateSurfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+	win32CreateSurfaceInfo.hwnd = m_hwnd;
+	win32CreateSurfaceInfo.hinstance = m_hinstance;
 
+	result = vkCreateWin32SurfaceKHR(m_instance, &win32CreateSurfaceInfo,
+		nullptr, &m_surface);
+	LOG_CHECK_MSG_VK("vkCreateWin32SurfaceKHR", result);
+#endif
+#ifdef LINUX
+	// TODO
+#endif
+
+	// Define what the surface can do
+	VkSurfaceCapabilitiesKHR surfaceCapabilities;
+	// TODO: Select correct physical device
+	result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_pPhysicalDevices[0], m_surface,
+		&surfaceCapabilities);
+	LOG_CHECK_MSG_VK("vkGetPhysicalDeviceSurfaceCapabilitiesKHR", result);
+
+	LogDebug("Surface Capabilities:");
+	LogDebug(" - minImageCount:            %u", surfaceCapabilities.minImageCount);
+	LogDebug(" - maxImageCount:            %u", surfaceCapabilities.maxImageCount);
+	LogDebug(" - current extend, width:    %u", surfaceCapabilities.currentExtent.width);
+	LogDebug(" - current extend, height:   %u", surfaceCapabilities.currentExtent.height);
+	LogDebug(" - min image extend, width:  %u", surfaceCapabilities.minImageExtent.width);
+	LogDebug(" - min image extend, height: %u", surfaceCapabilities.minImageExtent.height);
+	LogDebug(" - max image extend, width:  %u", surfaceCapabilities.maxImageExtent.width);
+	LogDebug(" - max image extend, height: %u", surfaceCapabilities.maxImageExtent.height);
+	LogDebug(" - max image array layers:   %u", surfaceCapabilities.maxImageArrayLayers);
+	LogDebug(" - supported transforms:     %u", surfaceCapabilities.supportedTransforms);
+	LogDebug(" - current transforms:       %u", surfaceCapabilities.currentTransform);
+	LogDebug(" - current composite alpha:  %u", surfaceCapabilities.supportedCompositeAlpha);
+	LogDebug("Supported Usage Flags:");
+	LogDebug(" - transfer src bit:             %08x", surfaceCapabilities.supportedUsageFlags &
+		VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+	LogDebug(" - color attachment bit:         %08x", surfaceCapabilities.supportedUsageFlags &
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+	LogDebug(" - depth stencil attachment bit: %08x", surfaceCapabilities.supportedUsageFlags &
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+	LogDebug(" - input attachment bit:         %08x", surfaceCapabilities.supportedUsageFlags &
+		VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT);
+	LogDebug(" - transient attachment bit:     %08x", surfaceCapabilities.supportedUsageFlags &
+		VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT);
+	LogDebug(" - storage bit:                  %08x", surfaceCapabilities.supportedUsageFlags &
+		VK_IMAGE_USAGE_STORAGE_BIT);
+	LogDebug(" - sampled bit:                  %08x", surfaceCapabilities.supportedUsageFlags &
+		VK_IMAGE_USAGE_SAMPLED_BIT);
 }
 
 void CVulkanBase::CreateDevice()

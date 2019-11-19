@@ -1,10 +1,11 @@
 #pragma once
-#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS 1
 
 #include "C:\\VulkanSDK\\1.1.121.2\Include\vulkan\vulkan.h"
 
 #define VK_NO_PROPERTIES
-#ifdef WIN32
+#ifdef _WIN32
+#include "windows.h"
 #include "C:\\VulkanSDK\\1.1.121.2\Include\vulkan\vulkan_win32.h"
 #define VK_USE_PLATFORM_WIN32_KHR
 #endif
@@ -14,8 +15,13 @@ class CVulkanBase
 public:
 	CVulkanBase();
 	~CVulkanBase();
+	
 
+#ifdef _WIN32
+	void Init(HWND hwnd, HINSTANCE hinstance);
+#else
 	void Init();
+#endif
 	void Tick();
 	void Fini();
 
@@ -23,7 +29,9 @@ private:
 	void CreateLog();
 	void CreateInstance();
 	void CheckHardware();
+	/** Load the functions of the extensions, so we can use them. */
 	void CreateExtensions();
+	/** Create an area to paint on. */
 	void CreateSurface();
 	void CreateDevice();
 	void CreateSwapchain();
@@ -35,7 +43,7 @@ private:
 
 	void ReSize(unsigned int uX, unsigned int uY);
 
-#ifdef WIN32
+#ifdef _WIN32
 	HWND m_hwnd = nullptr;
 	HINSTANCE m_hinstance = nullptr;
 #endif

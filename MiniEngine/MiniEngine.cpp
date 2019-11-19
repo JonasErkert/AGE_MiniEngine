@@ -64,7 +64,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPreviousInstance, LPWSTR l
 	base.Init(hwnd);
 #else
 	CVulkanBase base;
-	base.Init();
+	base.Init(hwnd, hInstance);
 #endif // DX12
 
 	//////////////////////////////////////////////////////////////////////////
