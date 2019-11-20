@@ -4,6 +4,8 @@
 #include "C:\\VulkanSDK\\1.1.121.2\Include\vulkan\vulkan.h"
 
 #define VK_NO_PROPERTIES
+#define NR_OF_QUEUES_USED 4
+
 #ifdef _WIN32
 #include "windows.h"
 #include "C:\\VulkanSDK\\1.1.121.2\Include\vulkan\vulkan_win32.h"
