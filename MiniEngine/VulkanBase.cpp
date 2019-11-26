@@ -357,21 +357,200 @@ void CVulkanBase::CreateDevice()
 	{
 		LogDebug("ERROR! Surface is not supported");
 	}
+
+	VkDeviceCreateInfo deviceCreateInfo;
+	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	deviceCreateInfo.pNext = nullptr;
+	deviceCreateInfo.flags = 0;
+	deviceCreateInfo.queueCreateInfoCount = 1;
+	deviceCreateInfo.pQueueCreateInfos = &deviceQueueCreateInfo;
+	deviceCreateInfo.enabledLayerCount = 0;
+	deviceCreateInfo.ppEnabledLayerNames = nullptr;
+	deviceCreateInfo.enabledExtensionCount = uDeviceExtensionsUsed;
+	deviceCreateInfo.ppEnabledExtensionNames = m_aacDeviceExtensionsUsed;
+	deviceCreateInfo.pEnabledFeatures = &physicalDeviceFeatures;
+
+	// TODO: Select best device
+	result = vkCreateDevice(m_pPhysicalDevices[0], &deviceCreateInfo, nullptr, &m_device);
+	LOG_CHECK_MSG_VK("vkCreateDevice", result);
+
+	vkGetDeviceQueue(m_device, 0, 0, &m_queue);
 }
 
 void CVulkanBase::CreateSwapchain()
 {
+	VkResult result;
+	VkSwapchainCreateInfoKHR swapChainCreateInfo;
+	swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	swapChainCreateInfo.pNext = nullptr;
+	swapChainCreateInfo.flags = 0;
+	swapChainCreateInfo.surface = m_surface;
+	swapChainCreateInfo.minImageCount = 3;
+	swapChainCreateInfo.imageFormat = VK_FORMAT_B8G8R8A8_UNORM;
+	swapChainCreateInfo.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+	swapChainCreateInfo.imageExtent = VkExtent2D{ m_uWidth, m_uHeight };
+	swapChainCreateInfo.imageArrayLayers = 1;
+	swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	swapChainCreateInfo.queueFamilyIndexCount = 0;
+	swapChainCreateInfo.pQueueFamilyIndices = nullptr;
+	// Don't translate, rotate, scale image: IDENTITY_BIT_KHR
+	swapChainCreateInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+	// Don't do transparency calculations on the screen: ALPHA_OPAQUE_BIT_KHR
+	swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	// First picture rendered is first picture shown
+	swapChainCreateInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+	swapChainCreateInfo.clipped = VK_TRUE;
+	swapChainCreateInfo.oldSwapchain = m_swapChain;
 
+	result = vkCreateSwapchainKHR(m_device, &swapChainCreateInfo, nullptr, &m_swapChain);
+	LOG_CHECK_MSG_VK("vkCreateSwapchainKHR", result);
+
+	result = vkGetSwapchainImagesKHR(m_device, m_swapChain, &m_uImagesInSwapChain, nullptr);
+	LOG_CHECK_MSG_VK("vkGetSwapchainImagesKHR", result);
+	VkImage* pImageSpawchains = new VkImage[m_uImagesInSwapChain];
+	LogDebug("Images in Swapchain: %u", m_uImagesInSwapChain);
+	result = vkGetSwapchainImagesKHR(m_device, m_swapChain, &m_uImagesInSwapChain, pImageSpawchains);
+	LOG_CHECK_MSG_VK("vkGetSwapchainImagesKHR", result);
+
+	m_pImageView = new VkImageView[m_uImagesInSwapChain];
+
+	for (unsigned int u = 0; u < m_uImagesInSwapChain; u++)
+	{
+		VkImageViewCreateInfo imageViewCreateInfo;
+		imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		imageViewCreateInfo.pNext = nullptr;
+		imageViewCreateInfo.flags = 0;
+		imageViewCreateInfo.image = pImageSpawchains[u];
+		imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		imageViewCreateInfo.format = VK_FORMAT_B8G8R8A8_UNORM;
+		imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+		imageViewCreateInfo.subresourceRange.levelCount = 1;
+		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+		imageViewCreateInfo.subresourceRange.layerCount = 1;
+		imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+		result = vkCreateImageView(m_device, &imageViewCreateInfo, nullptr, &m_pImageView[u]);
+		LOG_CHECK_MSG_VK("vkCreateImageView", result);
+	}
+
+	delete[] pImageSpawchains;
+	delete[] m_pImageView;
 }
 
 void CVulkanBase::CreateShaderModules()
 {
+	VkResult result;
+	unsigned int uBufferSizeAllocated = 100000;
+	HANDLE hFile;
 
+	//////////////////////////////////////////////////////////////////////////
+	// Read the vertex shader
+	uint32_t uSizeCodeVert = 0;
+	// HACK
+	// TODO: dynamically allocate
+	char* acShaderCodeVert = (char*)malloc(uBufferSizeAllocated);
+	hFile = CreateFile("shaders\\vert.spv", GENERIC_READ, 0, NULL, 
+		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+	if (hFile == INVALID_HANDLE_VALUE)
+	{
+		LogDebug("Couldn't read vertex shader file!");
+	}
+	else
+	{
+		ReadFile((HANDLE)hFile, acShaderCodeVert, 10000, (LPDWORD)&uSizeCodeVert, 0);
+		CloseHandle(hFile);
+		hFile = nullptr;
+	}
+
+	VkShaderModuleCreateInfo shaderModuleCreateInfoVert;
+	shaderModuleCreateInfoVert.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	shaderModuleCreateInfoVert.pNext = nullptr;
+	shaderModuleCreateInfoVert.flags = 0;
+	shaderModuleCreateInfoVert.codeSize = uSizeCodeVert;
+	shaderModuleCreateInfoVert.pCode = (uint32_t*)acShaderCodeVert;
+
+	result = vkCreateShaderModule(m_device, &shaderModuleCreateInfoVert, nullptr, &m_shaderModuleVert);
+	LOG_CHECK_MSG_VK("vkCreateShaderModule Vertex:   ", result);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Read the frag shader
+	uint32_t uSizeCodeFrag = 0;
+	// HACK
+	// TODO: dynamically allocate
+	char* acShaderCodeFrag = (char*)malloc(uBufferSizeAllocated);
+	hFile = CreateFile("shaders\\frag.spv", GENERIC_READ, 0, NULL,
+		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+	if (hFile == INVALID_HANDLE_VALUE)
+	{
+		LogDebug("Couldn't read fragment shader file!");
+	}
+	else
+	{
+		ReadFile((HANDLE)hFile, acShaderCodeFrag, 10000, (LPDWORD)&uSizeCodeFrag, 0);
+		CloseHandle(hFile);
+		hFile = nullptr;
+	}
+
+	VkShaderModuleCreateInfo shaderModuleCreateInfoFrag;
+	shaderModuleCreateInfoFrag.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	shaderModuleCreateInfoFrag.pNext = nullptr;
+	shaderModuleCreateInfoFrag.flags = 0;
+	shaderModuleCreateInfoFrag.codeSize = uSizeCodeFrag;
+	shaderModuleCreateInfoFrag.pCode = (uint32_t*)acShaderCodeFrag;
+
+	result = vkCreateShaderModule(m_device, &shaderModuleCreateInfoFrag, nullptr, &m_shaderModuleFrag);
+	LOG_CHECK_MSG_VK("vkCreateShaderModule Fragment: ", result);
 }
 
 void CVulkanBase::CreatePipleline()
 {
+	VkResult result;
 
+	VkPipelineShaderStageCreateInfo piplelineShaderStageCreateInfoVert;
+	piplelineShaderStageCreateInfoVert.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	piplelineShaderStageCreateInfoVert.pNext = nullptr;
+	piplelineShaderStageCreateInfoVert.flags = 0;
+	piplelineShaderStageCreateInfoVert.stage = VK_SHADER_STAGE_VERTEX_BIT;
+	piplelineShaderStageCreateInfoVert.module = m_shaderModuleVert;
+	piplelineShaderStageCreateInfoVert.pName = "main";
+	piplelineShaderStageCreateInfoVert.pSpecializationInfo = nullptr;
+
+	VkPipelineShaderStageCreateInfo piplelineShaderStageCreateInfoFrag;
+	piplelineShaderStageCreateInfoFrag.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	piplelineShaderStageCreateInfoFrag.pNext = nullptr;
+	piplelineShaderStageCreateInfoFrag.flags = 0;
+	piplelineShaderStageCreateInfoFrag.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+	piplelineShaderStageCreateInfoFrag.module = m_shaderModuleFrag;
+	piplelineShaderStageCreateInfoFrag.pName = "main";
+	piplelineShaderStageCreateInfoFrag.pSpecializationInfo = nullptr;
+
+	VkPipelineShaderStageCreateInfo piplelineShaderStageCreateInfo[] =
+	{
+		piplelineShaderStageCreateInfoVert,
+		piplelineShaderStageCreateInfoFrag
+	};
+
+	VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo;
+	pipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	pipelineVertexInputStateCreateInfo.pNext = nullptr;
+	pipelineVertexInputStateCreateInfo.flags = 0;
+	pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = 0;
+	pipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = nullptr;
+	pipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = 0;
+	pipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = nullptr;
+
+	VkViewport viewport;
+	viewport.x = 0.f;
+	viewport.y = 0.f;
+	viewport.width = m_uWidth;
+	viewport.width = m_uHeight;
 }
 
 void CVulkanBase::CreateFramebuffer()
