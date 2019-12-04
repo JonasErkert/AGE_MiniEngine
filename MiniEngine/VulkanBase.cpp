@@ -531,7 +531,7 @@ void CVulkanBase::CreatePipleline()
 	piplelineShaderStageCreateInfoFrag.pName = "main";
 	piplelineShaderStageCreateInfoFrag.pSpecializationInfo = nullptr;
 
-	VkPipelineShaderStageCreateInfo piplelineShaderStageCreateInfo[] =
+	VkPipelineShaderStageCreateInfo pipelineShaderStageCreateInfo[] =
 	{
 		piplelineShaderStageCreateInfoVert,
 		piplelineShaderStageCreateInfoFrag
@@ -551,16 +551,239 @@ void CVulkanBase::CreatePipleline()
 	viewport.y = 0.f;
 	viewport.width = m_uWidth;
 	viewport.width = m_uHeight;
+
+	VkRect2D rect2D;
+	rect2D.offset.x = 0.f;
+	rect2D.offset.y = 0.f;
+	rect2D.extent.width = m_uWidth;
+	rect2D.extent.height = m_uHeight;
+
+	VkPipelineViewportStateCreateInfo pipelineViewportStateCreateInfo;
+	pipelineViewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+	pipelineViewportStateCreateInfo.pNext = nullptr;
+	pipelineViewportStateCreateInfo.flags = 0;
+	pipelineViewportStateCreateInfo.viewportCount = 1;
+	pipelineViewportStateCreateInfo.pViewports = &viewport;
+	pipelineViewportStateCreateInfo.scissorCount = 1;
+	pipelineViewportStateCreateInfo.pScissors = &rect2D;
+
+	VkPipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo;
+	pipelineRasterizationStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	pipelineRasterizationStateCreateInfo.pNext = nullptr;
+	pipelineRasterizationStateCreateInfo.flags = 0;
+	// If false: in front of the NearClipping plane and behind the FarClipping plane values are discarded (default)
+	// If true: values are kept (important for the shadow map render pass)
+	pipelineRasterizationStateCreateInfo.depthClampEnable = VK_FALSE;
+	// If true the rasterizer is disabled, only used under special circumstances
+	pipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = VK_FALSE;
+	// No wireframe and no vertex point clouds, shade and fill polygons
+	pipelineRasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
+	// Enable backface culling
+	pipelineRasterizationStateCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+	// Right handed coordinate system
+	pipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	pipelineRasterizationStateCreateInfo.depthBiasEnable = VK_FALSE;
+	pipelineRasterizationStateCreateInfo.depthBiasConstantFactor = 0.f;
+	pipelineRasterizationStateCreateInfo.depthBiasClamp = 0.f;
+	pipelineRasterizationStateCreateInfo.depthBiasSlopeFactor = 1.f;
+	// Width of lines in wireframe mode: 1px
+	pipelineRasterizationStateCreateInfo.lineWidth = 1.f;
+
+	// Multisampling isn't used, should't be used typically
+	VkPipelineMultisampleStateCreateInfo pipelineMultisampleStateCreateInfo;
+	pipelineMultisampleStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+	pipelineMultisampleStateCreateInfo.pNext = nullptr;
+	pipelineMultisampleStateCreateInfo.flags = 0;
+	pipelineMultisampleStateCreateInfo.rasterizationSamples	= VK_SAMPLE_COUNT_1_BIT;
+	pipelineMultisampleStateCreateInfo.sampleShadingEnable	= VK_FALSE;
+	pipelineMultisampleStateCreateInfo.minSampleShading		= 1.f;
+	// Certain regions can be excluded of multisampling
+	pipelineMultisampleStateCreateInfo.pSampleMask			= nullptr;
+	pipelineMultisampleStateCreateInfo.alphaToCoverageEnable= VK_FALSE;
+	pipelineMultisampleStateCreateInfo.alphaToOneEnable		= VK_FALSE;
+
+	VkPipelineColorBlendAttachmentState pipelineColorBlendAttachmentstate;
+	// The underlying pixel is used as well
+	pipelineColorBlendAttachmentstate.blendEnable			= VK_TRUE;
+	// Use the alpha channel
+	pipelineColorBlendAttachmentstate.srcColorBlendFactor	= VK_BLEND_FACTOR_SRC_ALPHA;
+	// 1-alpha for the underlying pixel
+	pipelineColorBlendAttachmentstate.dstColorBlendFactor	= VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	// Addition is used for the calculations
+	pipelineColorBlendAttachmentstate.colorBlendOp			= VK_BLEND_OP_ADD;
+	pipelineColorBlendAttachmentstate.srcAlphaBlendFactor	= VK_BLEND_FACTOR_ONE;
+	pipelineColorBlendAttachmentstate.dstAlphaBlendFactor	= VK_BLEND_FACTOR_ZERO;
+	pipelineColorBlendAttachmentstate.alphaBlendOp			= VK_BLEND_OP_ADD;
+	// Take all color channels into consideration, including alpha
+	pipelineColorBlendAttachmentstate.colorWriteMask =
+		VK_COLOR_COMPONENT_R_BIT |
+		VK_COLOR_COMPONENT_G_BIT |
+		VK_COLOR_COMPONENT_B_BIT |
+		VK_COLOR_COMPONENT_A_BIT;
+
+	VkDynamicState aDynamicStates[] =
+	{
+		VK_DYNAMIC_STATE_VIEWPORT,
+		VK_DYNAMIC_STATE_SCISSOR
+	};
+
+	VkPipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo;
+	pipelineColorBlendStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+	pipelineColorBlendStateCreateInfo.pNext = nullptr;
+	pipelineColorBlendStateCreateInfo.flags = 0;
+	pipelineColorBlendStateCreateInfo.logicOpEnable		= VK_FALSE;
+	pipelineColorBlendStateCreateInfo.logicOp			= VK_LOGIC_OP_NO_OP;
+	pipelineColorBlendStateCreateInfo.attachmentCount	= 1;
+	pipelineColorBlendStateCreateInfo.pAttachments		= &pipelineColorBlendAttachmentstate;
+	pipelineColorBlendStateCreateInfo.blendConstants[0] = 0.f;
+	pipelineColorBlendStateCreateInfo.blendConstants[1] = 0.f;
+	pipelineColorBlendStateCreateInfo.blendConstants[2] = 0.f;
+	pipelineColorBlendStateCreateInfo.blendConstants[3] = 0.f;
+
+	VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo;
+	pipelineDynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+	pipelineDynamicStateCreateInfo.pNext = nullptr;
+	pipelineDynamicStateCreateInfo.flags = 0;
+	pipelineDynamicStateCreateInfo.dynamicStateCount	= 1;
+	pipelineDynamicStateCreateInfo.pDynamicStates		= aDynamicStates;
+
+	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo;
+	pipelineLayoutCreateInfo.sType						= VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipelineLayoutCreateInfo.pNext						= nullptr;
+	pipelineLayoutCreateInfo.flags						= 0;
+	pipelineLayoutCreateInfo.setLayoutCount				= 0;
+	pipelineLayoutCreateInfo.pSetLayouts				= nullptr;
+	pipelineLayoutCreateInfo.pushConstantRangeCount		= 0;
+	pipelineLayoutCreateInfo.pPushConstantRanges		= nullptr;
+
+	result = vkCreatePipelineLayout(m_device, &pipelineLayoutCreateInfo, nullptr, &m_pipelineLayout);
+	LOG_CHECK_MSG_VK("vkCreatePipelineLayout", result);
+
+	VkAttachmentDescription attachmentDescription;
+	attachmentDescription.flags = 0;
+	attachmentDescription.format = VK_FORMAT_B8G8R8A8_UNORM;
+	// Only important when using anti-aliasing
+	attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+	// Define how to use the data, which were previously written here:
+	// Delete data before loading
+	attachmentDescription.loadOp			= VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachmentDescription.storeOp			= VK_ATTACHMENT_STORE_OP_STORE;
+	attachmentDescription.stencilLoadOp		= VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	attachmentDescription.stencilStoreOp	= VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	attachmentDescription.initialLayout		= VK_IMAGE_LAYOUT_UNDEFINED;
+	attachmentDescription.finalLayout		= VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	VkAttachmentReference attachmentReference;
+	attachmentReference.attachment = 0;
+	attachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkSubpassDescription subpassDescription;
+	// Use the graphics pipeline instead of the compute pipeline
+	subpassDescription.flags = 0;
+	subpassDescription.pipelineBindPoint		= VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpassDescription.inputAttachmentCount		= 0;
+	subpassDescription.pInputAttachments		= nullptr;
+	subpassDescription.colorAttachmentCount		= 1;
+	subpassDescription.pColorAttachments		= &attachmentReference;
+	subpassDescription.pResolveAttachments		= nullptr;
+	subpassDescription.pDepthStencilAttachment	= nullptr;
+	subpassDescription.preserveAttachmentCount	= 0;
+	subpassDescription.pPreserveAttachments		= nullptr;
+
+	VkSubpassDependency subpassDependency;
+	subpassDependency.srcSubpass		= VK_SUBPASS_EXTERNAL;
+	subpassDependency.dstSubpass		= 0;
+	subpassDependency.srcStageMask		= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	subpassDependency.dstStageMask		= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	subpassDependency.srcAccessMask		= 0;
+	subpassDependency.dstAccessMask		= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	subpassDependency.dependencyFlags	= 0;
+
+	VkRenderPassCreateInfo renderPassCreateInfo;
+	renderPassCreateInfo.sType				= VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassCreateInfo.pNext				= nullptr;
+	renderPassCreateInfo.flags				= 0;
+	renderPassCreateInfo.attachmentCount	= 1;
+	renderPassCreateInfo.pAttachments		= &attachmentDescription;
+	renderPassCreateInfo.subpassCount		= 1;
+	renderPassCreateInfo.pSubpasses			= &subpassDescription;
+	renderPassCreateInfo.dependencyCount	= 1;
+	renderPassCreateInfo.pDependencies		= &subpassDependency;
+
+	result = vkCreateRenderPass(m_device, &renderPassCreateInfo, nullptr, &m_renderpass);
+	LOG_CHECK_MSG_VK("vkCreateRenderPass", result);
+
+	VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo;
+	pipelineInputAssemblyStateCreateInfo.sType		= VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	pipelineInputAssemblyStateCreateInfo.pNext		= nullptr;
+	pipelineInputAssemblyStateCreateInfo.flags		= 0;
+	pipelineInputAssemblyStateCreateInfo.topology	= VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	// Can triangle strips be broken with the special command 0xFFFFFF?
+	// If yes: VK_TRUE
+	pipelineInputAssemblyStateCreateInfo.primitiveRestartEnable = VK_FALSE;
+
+	VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo;
+	graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	graphicsPipelineCreateInfo.pNext = nullptr;
+	graphicsPipelineCreateInfo.flags = 0;
+	graphicsPipelineCreateInfo.stageCount			= 2; // Two shader stages: vert/ frag
+	graphicsPipelineCreateInfo.pStages				= pipelineShaderStageCreateInfo;
+	graphicsPipelineCreateInfo.pVertexInputState	= &pipelineVertexInputStateCreateInfo;
+	graphicsPipelineCreateInfo.pInputAssemblyState	= &pipelineInputAssemblyStateCreateInfo;
+	graphicsPipelineCreateInfo.pTessellationState	= nullptr;
+	graphicsPipelineCreateInfo.pViewportState		= &pipelineViewportStateCreateInfo;
+	graphicsPipelineCreateInfo.pRasterizationState	= &pipelineRasterizationStateCreateInfo;
+	graphicsPipelineCreateInfo.pMultisampleState	= &pipelineMultisampleStateCreateInfo;
+	graphicsPipelineCreateInfo.pDepthStencilState	= nullptr;
+	graphicsPipelineCreateInfo.pColorBlendState		= &pipelineColorBlendStateCreateInfo;
+	graphicsPipelineCreateInfo.pDynamicState		= &pipelineDynamicStateCreateInfo;
+	graphicsPipelineCreateInfo.layout				= m_pipelineLayout;
+	graphicsPipelineCreateInfo.renderPass			= m_renderpass;
+	graphicsPipelineCreateInfo.subpass				= 0;
+	graphicsPipelineCreateInfo.basePipelineHandle	= VK_NULL_HANDLE;
+	graphicsPipelineCreateInfo.basePipelineIndex	= -1;
+
+	result = vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr, &m_pipeline);
+	LOG_CHECK_MSG_VK("vkCreateGraphicsPipelines", result);
 }
 
 void CVulkanBase::CreateFramebuffer()
 {
+	VkResult result;
 
+	m_pFramebuffer = new VkFramebuffer[m_uImagesInSwapChain];
+
+	for (unsigned int i = 0; i < m_uImagesInSwapChain; i++)
+	{
+		VkFramebufferCreateInfo framebufferCreateInfo;
+		framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		framebufferCreateInfo.pNext = nullptr;
+		framebufferCreateInfo.flags = 0;
+		framebufferCreateInfo.renderPass		= m_renderpass;
+		framebufferCreateInfo.attachmentCount	= 1;
+		framebufferCreateInfo.pAttachments		= &(m_pImageView[i]);
+		framebufferCreateInfo.width				= m_uWidth;
+		framebufferCreateInfo.height			= m_uHeight;
+		framebufferCreateInfo.layers			= 1;
+
+		result = vkCreateFramebuffer(m_device, &framebufferCreateInfo, nullptr, &(m_pFramebuffer[i]));
+		LOG_CHECK_MSG_VK("vkCreateFramebuffer", result);
+	}
 }
 
 void CVulkanBase::CreateCommandbuffer()
 {
+	VkResult result;
+	VkCommandPoolCreateInfo commandPoolCreateInfo;
+	commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	commandPoolCreateInfo.pNext = nullptr;
+	commandPoolCreateInfo.flags = 0;
+	// TODO: Can be not equal to null on exotic graphic cards: check it
+	// Grab the first one
+	commandPoolCreateInfo.queueFamilyIndex = 0;
 
+	result = vkCreateCommandPool(m_device, &commandPoolCreateInfo, nullptr, &m_commandPool);
+	LOG_CHECK_MSG_VK("vkCreateCommandPool", result);
 }
 
 void CVulkanBase::CreateSemaphores()

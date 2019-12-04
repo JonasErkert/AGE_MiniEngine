@@ -64,7 +64,7 @@ private:
 	VkQueue m_queue;
 	VkQueueFamilyProperties* m_pQueueFamilyProperties = nullptr;
 	VkFramebuffer* m_pFramebuffer = nullptr;
-	VkCommandPool* m_pCommandPool = nullptr;
+	VkCommandPool m_commandPool;
 	VkCommandBuffer* m_pCommandBuffer = nullptr;
 
 	// Background color and Deletion values of the depth stencil buffer
