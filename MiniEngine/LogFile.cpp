@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "LogFile.h"
 
+#define MSG_BUFFER_SIZE 8192
+
 FILE* g_pFileLog = nullptr;
 const char* g_path;
 
@@ -54,7 +56,7 @@ void LogPut(LPCSTR szMsg, bool bWriteLn, bool bTime)
 
 void LogHelp(LPCSTR szMsg, va_list arglist)
 {
-	char szMsgBuf[256];
+	char szMsgBuf[MSG_BUFFER_SIZE];
 	vsprintf(szMsgBuf, szMsg, arglist);
 	LogPut(szMsgBuf, true);
 }

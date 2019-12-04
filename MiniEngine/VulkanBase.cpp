@@ -56,7 +56,38 @@ void CVulkanBase::Init()
 
 void CVulkanBase::Tick()
 {
+	uint32_t uImage;
+	
+	// Get the current image from the swapchain
+	vkAcquireNextImageKHR(m_device, m_swapChain, UINT64_MAX, m_semaphoreReady, VK_NULL_HANDLE, &uImage);
 
+	VkPipelineStageFlags aPipelineStageFlags[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	
+	m_submitInfo.sType					= VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	m_submitInfo.pNext					= nullptr;
+	m_submitInfo.waitSemaphoreCount		= 1;
+	m_submitInfo.pWaitSemaphores		= &m_semaphoreReady;
+	m_submitInfo.pWaitDstStageMask		= aPipelineStageFlags;
+	m_submitInfo.commandBufferCount		= 1;
+	m_submitInfo.pCommandBuffers		= &(m_pCommandBuffer[uImage]);
+	m_submitInfo.signalSemaphoreCount	= 1;
+	m_submitInfo.pSignalSemaphores		= &m_semaphoreRenderingDone;
+
+	VkResult result = vkQueueSubmit(m_queue, 1, &m_submitInfo, VK_NULL_HANDLE);
+	LOG_CHECK_MSG_VK("vkQueueSubmit", result);
+
+	VkPresentInfoKHR presentInfo;
+	presentInfo.sType				= VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	presentInfo.pNext				= nullptr;
+	presentInfo.waitSemaphoreCount	= 1;
+	presentInfo.pWaitSemaphores		= &m_semaphoreRenderingDone;
+	presentInfo.swapchainCount		= 1;
+	presentInfo.pSwapchains			= &m_swapChain;
+	presentInfo.pImageIndices		= &uImage;
+	presentInfo.pResults			= nullptr;
+
+	result = vkQueuePresentKHR(m_queue, &presentInfo);
+	LOG_CHECK_MSG_VK("vkQueuePresentKHR", result);
 }
 
 void CVulkanBase::Fini()
@@ -145,7 +176,6 @@ void CVulkanBase::CheckHardware()
 		VkPhysicalDeviceProperties deviceProperties;
 		vkGetPhysicalDeviceProperties(m_pPhysicalDevices[u], &deviceProperties);
 
-		VkPhysicalDeviceType deviceType;
 		uint32_t uVersionMajor = VK_VERSION_MAJOR(deviceProperties.apiVersion);
 		uint32_t uVersionMinor = VK_VERSION_MINOR(deviceProperties.apiVersion);
 		uint32_t uVersionPatch = VK_VERSION_PATCH(deviceProperties.apiVersion);
@@ -553,8 +583,8 @@ void CVulkanBase::CreatePipleline()
 	viewport.width = m_uHeight;
 
 	VkRect2D rect2D;
-	rect2D.offset.x = 0.f;
-	rect2D.offset.y = 0.f;
+	rect2D.offset.x = 0;
+	rect2D.offset.y = 0;
 	rect2D.extent.width = m_uWidth;
 	rect2D.extent.height = m_uHeight;
 
@@ -644,7 +674,7 @@ void CVulkanBase::CreatePipleline()
 	pipelineDynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 	pipelineDynamicStateCreateInfo.pNext = nullptr;
 	pipelineDynamicStateCreateInfo.flags = 0;
-	pipelineDynamicStateCreateInfo.dynamicStateCount	= 1;
+	pipelineDynamicStateCreateInfo.dynamicStateCount	= 2;
 	pipelineDynamicStateCreateInfo.pDynamicStates		= aDynamicStates;
 
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo;
@@ -784,11 +814,94 @@ void CVulkanBase::CreateCommandbuffer()
 
 	result = vkCreateCommandPool(m_device, &commandPoolCreateInfo, nullptr, &m_commandPool);
 	LOG_CHECK_MSG_VK("vkCreateCommandPool", result);
+
+	VkCommandBufferAllocateInfo commandBufferAllocateInfo;
+	commandBufferAllocateInfo.sType					= VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	commandBufferAllocateInfo.pNext					= nullptr;
+	commandBufferAllocateInfo.commandPool			= m_commandPool;
+	// Primary buffers can call secondary buffers, not possible in reverse order
+	commandBufferAllocateInfo.level					= VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	commandBufferAllocateInfo.commandBufferCount	= m_uImagesInSwapChain;
+
+	m_pCommandBuffer = new VkCommandBuffer[m_uImagesInSwapChain];
+	result = vkAllocateCommandBuffers(m_device, &commandBufferAllocateInfo, m_pCommandBuffer);
+	LOG_CHECK_MSG_VK("vkAllocateCommandBuffers", result);
+
+	// Begin recording of commands
+	VkCommandBufferBeginInfo commandBufferBeginInfo;
+	commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	commandBufferBeginInfo.pNext = nullptr;
+	// SUBMIT_BIT: record new directly after committing
+	// RENDERPASS_CONTINUE_BIT: Only one renderpass is committed
+	// SIMULTANEOUS_USE_BIT: Even if the command isn't fully processed by the GPU new commands can be issued nevertheless
+	commandBufferBeginInfo.flags			= VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+	commandBufferBeginInfo.pInheritanceInfo	= nullptr; // Only important on secondary buffers
+
+	VkViewport viewport;
+	// Extends of the viewport
+	viewport.x		= 0.f;
+	viewport.y		= 0.f;
+	viewport.width	= m_uWidth;
+	viewport.height	= m_uHeight;
+	// Depthbuffer distance
+	viewport.minDepth = 1.f;
+	viewport.maxDepth = 0.f;
+
+	VkRect2D rect2D;
+	rect2D.offset.x			= 0;
+	rect2D.offset.y			= 0;
+	rect2D.extent.width		= m_uWidth;
+	rect2D.extent.height	= m_uHeight;
+
+	for (unsigned int i = 0; i < m_uImagesInSwapChain; i++)
+	{
+		result = vkBeginCommandBuffer(m_pCommandBuffer[i], &commandBufferBeginInfo);
+		LOG_CHECK_MSG_VK("vkBeginCommandBuffer", result);
+
+		m_clearValue.color = { 0.f, 0.f, 1.f, 1.f }; // Blue
+		m_clearValue.depthStencil.depth = 0.f;
+		m_clearValue.depthStencil.stencil = 0;
+
+		VkRenderPassBeginInfo renderPassBeginInfo;
+		renderPassBeginInfo.sType				= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassBeginInfo.pNext				= nullptr;
+		renderPassBeginInfo.renderPass			= m_renderpass;
+		renderPassBeginInfo.framebuffer			= m_pFramebuffer[i];
+		renderPassBeginInfo.renderArea.offset	= { 0, 0 };
+		renderPassBeginInfo.renderArea.extent	= { m_uWidth, m_uHeight };
+		renderPassBeginInfo.clearValueCount		= 1;
+		renderPassBeginInfo.pClearValues		= &m_clearValue;
+		
+		// All command procedures in Vulkan begin with a VkCmd
+		vkCmdBeginRenderPass(m_pCommandBuffer[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBindPipeline(m_pCommandBuffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+
+		vkCmdSetViewport(m_pCommandBuffer[i], 0, 1, &viewport);
+		vkCmdSetScissor(m_pCommandBuffer[i], 0, 1, &rect2D);
+		vkCmdDraw(m_pCommandBuffer[i], 3, 1, 0, 0); // 3 vertices, 1 instance
+
+		vkCmdEndRenderPass(m_pCommandBuffer[i]);
+
+		result = vkEndCommandBuffer(m_pCommandBuffer[i]);
+		LOG_CHECK_MSG_VK("vkEndCommandBuffer", result);
+	}
 }
 
 void CVulkanBase::CreateSemaphores()
 {
+	VkResult result;
+	VkSemaphoreCreateInfo semaphoreCreateInfo;
+	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	semaphoreCreateInfo.pNext = nullptr;
+	semaphoreCreateInfo.flags = 0;
 
+	// Semaphore at the beginning of the access of a resource
+	result = vkCreateSemaphore(m_device, &semaphoreCreateInfo, nullptr, &m_semaphoreReady);
+	LOG_CHECK_MSG_VK("vkCreateSemaphore: Ready", result);
+
+	// Semaphore at the end of the access of a resource
+	result = vkCreateSemaphore(m_device, &semaphoreCreateInfo, nullptr, &m_semaphoreRenderingDone);
+	LOG_CHECK_MSG_VK("vkCreateSemaphore: Rendering Done", result);
 }
 
 void CVulkanBase::ReSize(unsigned int uX, unsigned int uY)
