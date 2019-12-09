@@ -469,7 +469,6 @@ void CVulkanBase::CreateSwapchain()
 	}
 
 	delete[] pImageSpawchains;
-	delete[] m_pImageView;
 }
 
 void CVulkanBase::CreateShaderModules()
@@ -906,5 +905,31 @@ void CVulkanBase::CreateSemaphores()
 
 void CVulkanBase::ReSize(unsigned int uX, unsigned int uY)
 {
+	if (m_hwnd == nullptr)
+	{
+		return;
+	}
 
+	if (uX == 0 || uY == 0)
+	{
+		return;
+	}
+
+	// TODO: Check, if new extends are in range of the surface capability
+	m_uWidth = uX;
+	m_uHeight = uY;
+
+	// Wait until the rendering is done and the graphics card is idle
+	vkDeviceWaitIdle(m_device);
+
+	// Delete all commands, which are perhaps not processed
+	vkFreeCommandBuffers(m_device, m_commandPool, m_uImagesInSwapChain, m_pCommandBuffer);
+	
+	delete[] m_pCommandBuffer;
+
+	// For each vkCreate command there is a corresponding vkDestroy
+	// IMPORTANT: These are called in reverse order!
+	vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+
+	// TODO: destroy everything else
 }
