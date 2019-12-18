@@ -167,7 +167,6 @@ UINT64 CBuffer::UpdateSubresources
 		pSubresourceData);
 
 	HeapFree(GetProcessHeap(), 0, pvMemory);
-	HRESULT hresult = ullResult;
 
 	return ullResult;
 }

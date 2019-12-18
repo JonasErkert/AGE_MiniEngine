@@ -64,7 +64,7 @@ void CBufferIndex::Init(ID3D12Device* pDevice, void* apvData, unsigned int uByte
 	heapPropertiesUploadBuffer.CreationNodeMask			= 1;
 	heapPropertiesUploadBuffer.VisibleNodeMask			= 1;
 	heapPropertiesUploadBuffer.MemoryPoolPreference		= D3D12_MEMORY_POOL_UNKNOWN;
-	heapPropertiesUploadBuffer.Type						= D3D12_HEAP_TYPE_DEFAULT; // Default heap for default buffer
+	heapPropertiesUploadBuffer.Type						= D3D12_HEAP_TYPE_UPLOAD; // Upload heap for upload buffer
 
 	hresult = m_pDevice->CreateCommittedResource
 	(

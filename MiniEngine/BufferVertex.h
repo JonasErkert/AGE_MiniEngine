@@ -13,7 +13,7 @@ public:
 	 * @param uBytesData Size of the vertex data in bytes.
 	 * @param uStrideData Stride data.
 	 */
-	void Init(ID3D12Device* pDevice, unsigned int uBytesData, unsigned int uStrideData);
+	void Init(ID3D12Device* pDevice, void* apvData, unsigned int uBytesData, unsigned int uStrideData);
 	void Draw(ID3D12GraphicsCommandList* pCommandList); // Draws with the help of the indices
 	void Fini();
 
