@@ -159,13 +159,25 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Buffer.h" />
+    <ClInclude Include="BufferConstant.h" />
+    <ClInclude Include="BufferIndex.h" />
+    <ClInclude Include="BufferVertex.h" />
     <ClInclude Include="CDirectX12Base.h" />
+    <ClInclude Include="Vector4.h" />
+    <ClInclude Include="Vertex.h" />
     <ClInclude Include="VulkanBase.h" />
     <ClInclude Include="LogFile.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Buffer.cpp" />
+    <ClCompile Include="BufferConstant.cpp" />
+    <ClCompile Include="BufferIndex.cpp" />
+    <ClCompile Include="BufferVertex.cpp" />
     <ClCompile Include="CDirectX12Base.cpp" />
+    <ClCompile Include="Vector4.cpp" />
+    <ClCompile Include="Vertex.cpp" />
     <ClCompile Include="VulkanBase.cpp" />
     <ClCompile Include="LogFile.cpp" />
     <ClCompile Include="MiniEngine.cpp" />

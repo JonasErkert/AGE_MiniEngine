@@ -1,3 +1,12 @@
+struct VS_Input
+{
+	float3 f3Pos		: POSITION;
+	float3 f3Normal		: NORMAL;
+	float3 f3Tangent	: TANGENT;
+	float3 f3Bitangent	: BITANGENT;
+	float3 f3TexCoord	: TEXCOORD;
+};
+
 struct VS_Output
 {
 	float4 f4Position : SV_Position;

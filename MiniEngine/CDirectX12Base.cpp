@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "CDirectX12Base.h"
 #include "LogFile.h"
+#include "Vector4.h"
 
 
 CDirectX12Base::CDirectX12Base()
@@ -90,6 +91,72 @@ void CDirectX12Base::Init(HWND hwnd)
 	}
 
 	//////////////////////////////////////////////////////////////////////////
+	// Create shader vertex transfer structure
+	// Information of vertices:
+	// Position (must have)
+	// Normal (necessary for shading)
+	// Color (nice to have)
+	// Tangent (normal mapping)
+	// Bitangent (normal mapping)
+	// UV coordinates (texturing)
+	// (Weights for bone animation)
+	
+	D3D12_INPUT_ELEMENT_DESC inputElementDesc[]
+	{
+		{
+			"POSITION",						// Semantic name
+			0,								// Semantic index
+			DXGI_FORMAT_R32G32B32_FLOAT,	// Transfer format
+			0,								// Input slot, which transfers info to the vertex shader (0-15)
+			0,								// Byte offset
+			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // Input for vertices
+			0								// Data step size (Advanced offset, not needed necessarily)
+		},
+		{
+			"NORMAL",						// Semantic name
+			0,								// Semantic index
+			DXGI_FORMAT_R32G32B32_FLOAT,	// Transfer format
+			0,								// Input slot, which transfers info to the vertex shader (0-15)
+			12,								// Byte offset, 3*4 byte of the position
+			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // Input for vertices
+			0								// Data step size (Advanced offset, not needed necessarily)
+		},
+		{
+			"TANGENT",						// Semantic name
+			0,								// Semantic index
+			DXGI_FORMAT_R32G32B32_FLOAT,	// Transfer format
+			0,								// Input slot, which transfers info to the vertex shader (0-15)
+			24,								// Byte offset, 12 Pos + 12 Normal
+			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // Input for vertices
+			0								// Data step size (Advanced offset, not needed necessarily)
+		},
+		{
+			"BITANGENT",					// Semantic name
+			0,								// Semantic index
+			DXGI_FORMAT_R32G32B32_FLOAT,	// Transfer format
+			0,								// Input slot, which transfers info to the vertex shader (0-15)
+			36,								// Byte offset, 12 Pos + 12 Normal + 12 Tangent
+			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // Input for vertices
+			0								// Data step size (Advanced offset, not needed necessarily)
+		},
+		{
+			"TEXCOORD",						// Semantic name
+			0,								// Semantic index
+			DXGI_FORMAT_R32G32_FLOAT,		// Transfer format (R = U, G = V coordinate)
+			0,								// Input slot, which transfers info to the vertex shader (0-15)
+			48,								// Byte offset, 12 Pos + 12 Normal + 12 Tangent + 12 Bitangent
+			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, // Input for vertices
+			0								// Data step size (Advanced offset, not needed necessarily)
+		}
+	};
+
+	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc;
+	inputLayoutDesc.pInputElementDescs = inputElementDesc;
+	// Number of entries (Pos, Normal, Tangent, Bitangent, UV)
+	inputLayoutDesc.NumElements = 5;
+
+
+	//////////////////////////////////////////////////////////////////////////
 	// Compile and bind shader
 #ifdef _DEBUG
 	UINT compilerFlags = D3DCOMPILE_DEBUG;
@@ -171,6 +238,8 @@ void CDirectX12Base::Init(HWND hwnd)
 		pipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		pipelineStateDesc.NumRenderTargets = 1;
 		pipelineStateDesc.RTVFormats[0] = swapChainDesc.Format;
+
+		pipelineStateDesc.InputLayout = inputLayoutDesc;
 		pipelineStateDesc.SampleDesc.Count = 1;
 		pipelineStateDesc.SampleDesc.Quality = 0; // Selects best quality
 
@@ -336,4 +405,72 @@ void CDirectX12Base::CheckAdapter()
 			free(pModeDesc);
 		}
 	}
+}
+
+void CDirectX12Base::CreateCube()
+{
+	m_avVertex[0].Init(
+		CVector4(-1.f, 1.f, 1.f, 1.f), // Pos
+		CVector4( 0.f, 0.f, 1.f, 0.f), // Normal
+		CVector4( 1.f, 0.f, 0.f, 0.f), // Tangent
+		CVector4(01.f, 1.f, 0.f, 0.f), // Bitangent
+		0.f, // U
+		0.f  // V
+		);
+
+	// Front
+	m_auIndexBuffer[0] = 0;
+	m_auIndexBuffer[1] = 2;
+	m_auIndexBuffer[2] = 1;
+
+	m_auIndexBuffer[3] = 1;
+	m_auIndexBuffer[4] = 2;
+	m_auIndexBuffer[5] = 3;
+
+	// Back
+	m_auIndexBuffer[6] = 4;
+	m_auIndexBuffer[7] = 5;
+	m_auIndexBuffer[8] = 6;
+
+	m_auIndexBuffer[9]  = 5;
+	m_auIndexBuffer[10] = 7;
+	m_auIndexBuffer[11] = 6;
+
+	int iOffset = 8;
+	// Right
+	m_auIndexBuffer[12] = 7 + iOffset;
+	m_auIndexBuffer[13] = 5 + iOffset;
+	m_auIndexBuffer[14] = 1 + iOffset;
+
+	m_auIndexBuffer[15] = 7 + iOffset;
+	m_auIndexBuffer[16] = 1 + iOffset;
+	m_auIndexBuffer[17] = 3 + iOffset;
+
+	// Left
+	m_auIndexBuffer[18] = 0 + iOffset;
+	m_auIndexBuffer[19] = 4 + iOffset;
+	m_auIndexBuffer[20] = 6 + iOffset;
+
+	m_auIndexBuffer[21] = 0 + iOffset;
+	m_auIndexBuffer[22] = 6 + iOffset;
+	m_auIndexBuffer[23] = 2 + iOffset;
+
+	iOffset = 16;
+	// Bottom
+	m_auIndexBuffer[24] = 6 + iOffset;
+	m_auIndexBuffer[25] = 7 + iOffset;
+	m_auIndexBuffer[26] = 2 + iOffset;
+
+	m_auIndexBuffer[27] = 2 + iOffset;
+	m_auIndexBuffer[28] = 7 + iOffset;
+	m_auIndexBuffer[29] = 3 + iOffset;
+
+	// Top
+	m_auIndexBuffer[30] = 5 + iOffset;
+	m_auIndexBuffer[31] = 4 + iOffset;
+	m_auIndexBuffer[32] = 0 + iOffset;
+
+	m_auIndexBuffer[33] = 5 + iOffset;
+	m_auIndexBuffer[34] = 0 + iOffset;
+	m_auIndexBuffer[35] = 1 + iOffset;
 }

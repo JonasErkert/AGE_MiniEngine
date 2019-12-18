@@ -5,6 +5,7 @@
 #include <dxgi1_2.h>	// Math functions of DX12 => dxgi.lib
 #include <dxgi1_4.h>	// IDXGISwapChain3 =>dxgi.lib
 #include <d3dcompiler.h> // Functions to compile HLSL shaders => d3dCompiler.lib
+#include "Vertex.h"
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -24,6 +25,10 @@ public:
 
 	/** Checks the hardware and selects the best adapter. */
 	void CheckAdapter();
+
+	CVertex m_avVertex[24]; // 8 * 3
+	unsigned int m_auIndexBuffer[36];
+	void CreateCube();
 
 private:
 	ID3D12Device* m_pDevice = nullptr; // Pointer to the entire dx system
