@@ -2,6 +2,7 @@
 #include "CDirectX12Base.h"
 #include "LogFile.h"
 #include "Vector4.h"
+#include "Mat.h"
 
 
 CDirectX12Base::CDirectX12Base()
@@ -67,6 +68,35 @@ void CDirectX12Base::Init(HWND hwnd)
 	hresult = m_pDevice->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&m_pDescriptorHeap));
 	LOG_CHECK_MSG("CreateDescriptorHeap", hresult);
 
+	//////////////////////////////////////////////////////////////////////////
+	// Create Buffer
+
+	unsigned int uRootParameter = 0; // Number of registered Root Parameter
+	unsigned int uRegisterConstantBuffer = 0; // Number of used CBs
+
+	m_bufferConstantWorldViewProj.Init(
+		m_pDevice,
+		m_aRootParamter,
+		D3D12_SHADER_VISIBILITY_VERTEX,
+		uRootParameter++,
+		&m_worldViewProj,
+		sizeof(m_worldViewProj),
+		256,
+		uRegisterConstantBuffer++
+	);
+
+	m_bufferConstantColorEffects.Init(
+		m_pDevice,
+		m_aRootParamter,
+		D3D12_SHADER_VISIBILITY_PIXEL,
+		uRootParameter++,
+		&m_colorChanging,
+		sizeof(m_colorChanging),
+		256,
+		uRegisterConstantBuffer++
+	);
+
+	//////////////////////////////////////////////////////////////////////////
 	// Create Swapchain
 
 	// Size of the incrementSize varies depending on the vendor (AMD, NVdia, Intel) => Query it
@@ -177,10 +207,16 @@ void CDirectX12Base::Init(HWND hwnd)
 	//////////////////////////////////////////////////////////////////////////
 	// Configure render pipeline
 	D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-	rootSignatureDesc.NumParameters = 0;
-	rootSignatureDesc.pParameters = 0;
+	ZeroMemory(&rootSignatureDesc, sizeof(rootSignatureDesc));
+	rootSignatureDesc.NumParameters = uRootParameter;
+	rootSignatureDesc.pParameters = &m_aRootParamter[0];
 	rootSignatureDesc.NumStaticSamplers = 0;
-	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+	rootSignatureDesc.pStaticSamplers = 0;
+	rootSignatureDesc.Flags =
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
 	// A blob is an undefined part buffer
 	ID3DBlob* pBlobRootSignature = nullptr;
@@ -215,37 +251,50 @@ void CDirectX12Base::Init(HWND hwnd)
 		pipelineStateDesc.BlendState.RenderTarget[i].BlendOpAlpha	= D3D12_BLEND_OP_ADD;
 		pipelineStateDesc.BlendState.RenderTarget[i].LogicOp		= D3D12_LOGIC_OP_NOOP;
 		pipelineStateDesc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-
-		// Draw triangles solid. Alternative: D3D12_FILL_MODE_WIREFRAME
-		pipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-		// Only for left handed systems: D3D12_CULL_MODE_FRONT
-		pipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; // Later: D3D12_CULL_MODE_BACK
-		// TRUE for right handed systems
-		pipelineStateDesc.RasterizerState.FrontCounterClockwise = TRUE;
-		// Shadow mapping
-		pipelineStateDesc.RasterizerState.DepthBias = 0;
-		pipelineStateDesc.RasterizerState.DepthBiasClamp = 0.f;
-		pipelineStateDesc.RasterizerState.SlopeScaledDepthBias = 0.f;
-		// Occlude hidden objects, consider z-Buffer
-		pipelineStateDesc.RasterizerState.DepthClipEnable = TRUE;
-		pipelineStateDesc.RasterizerState.MultisampleEnable = FALSE;
-		// Enable anti aliasing? No wire frame -> FALSE
-		pipelineStateDesc.RasterizerState.AntialiasedLineEnable = FALSE;
-		pipelineStateDesc.RasterizerState.ForcedSampleCount = 0;
-		pipelineStateDesc.RasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-		
-		pipelineStateDesc.SampleMask = UINT_MAX;
-		pipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		pipelineStateDesc.NumRenderTargets = 1;
-		pipelineStateDesc.RTVFormats[0] = swapChainDesc.Format;
-
-		pipelineStateDesc.InputLayout = inputLayoutDesc;
-		pipelineStateDesc.SampleDesc.Count = 1;
-		pipelineStateDesc.SampleDesc.Quality = 0; // Selects best quality
-
-		hresult = m_pDevice->CreateGraphicsPipelineState(&pipelineStateDesc, IID_PPV_ARGS(&m_pPipelineState));
-		LOG_CHECK_MSG("CreateGraphicsPipelineState", hresult);
 	}
+
+	// Draw triangles solid. Alternative: D3D12_FILL_MODE_WIREFRAME
+	pipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+	// Only for left handed systems: D3D12_CULL_MODE_FRONT
+	pipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; // Later: D3D12_CULL_MODE_BACK
+	// TRUE for right handed systems
+	pipelineStateDesc.RasterizerState.FrontCounterClockwise = TRUE;
+	// Shadow mapping
+	pipelineStateDesc.RasterizerState.DepthBias = 0;
+	pipelineStateDesc.RasterizerState.DepthBiasClamp = 0.f;
+	pipelineStateDesc.RasterizerState.SlopeScaledDepthBias = 0.f;
+	// Occlude hidden objects, consider z-Buffer
+	pipelineStateDesc.RasterizerState.DepthClipEnable = TRUE;
+	pipelineStateDesc.RasterizerState.MultisampleEnable = FALSE;
+	// Enable anti aliasing? No wire frame -> FALSE
+	pipelineStateDesc.RasterizerState.AntialiasedLineEnable = FALSE;
+	pipelineStateDesc.RasterizerState.ForcedSampleCount = 0;
+	pipelineStateDesc.RasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+		
+	pipelineStateDesc.SampleMask = UINT_MAX;
+	pipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	pipelineStateDesc.NumRenderTargets = 1;
+	pipelineStateDesc.RTVFormats[0] = swapChainDesc.Format;
+
+	pipelineStateDesc.InputLayout = inputLayoutDesc;
+	pipelineStateDesc.SampleDesc.Count = 1;
+	pipelineStateDesc.SampleDesc.Quality = 0; // Selects best quality
+
+	hresult = m_pDevice->CreateGraphicsPipelineState(&pipelineStateDesc, IID_PPV_ARGS(&m_pPipelineState));
+	LOG_CHECK_MSG("CreateGraphicsPipelineState", hresult);
+
+	// Create vertex data of the cube and pass them to the vertex buffer
+	m_pGeoCube = new CGeoCube();
+	m_pGeoCube->Init(1, 2, 3, CColor(1, 1, 0));
+	m_bufferVertex.Init(
+		m_pDevice,
+		m_pGeoCube->m_aVertex,
+		m_pGeoCube->m_iVertices * sizeof(SVertex),
+		sizeof(SVertex));
+	m_bufferIndex.Init(
+		m_pDevice,
+		m_pGeoCube->m_aiIndex,
+		m_pGeoCube->m_iIndices * sizeof(int));
 }
 
 void CDirectX12Base::Tick()
@@ -302,11 +351,14 @@ void CDirectX12Base::Tick()
 	// Param 3: Descriptor range
 	// Param 4: Depth stencil descriptor
 	pCommandList->OMSetRenderTargets(1, &cpuDescrHandle, 0, 0);
+	CMat mCam(10.f, );
+
 	// Draw a triangle
 	// Param 1: Number of vertices
 	// Param 2: Instance counter (how many instances of it to draw)
 	// Param 3: Seldom used, only for pros
-	pCommandList->DrawInstanced(9, 1, 0, 0);
+	// pCommandList->DrawInstanced(9, 1, 0, 0);
+
 	// Free the resource of the render target for other threads
 	pCommandList->ResourceBarrier(1, &resourceBarrierOne);
 	pCommandList->Close();
@@ -407,70 +459,3 @@ void CDirectX12Base::CheckAdapter()
 	}
 }
 
-void CDirectX12Base::CreateCube()
-{
-	m_avVertex[0].Init(
-		CVector4(-1.f, 1.f, 1.f, 1.f), // Pos
-		CVector4( 0.f, 0.f, 1.f, 0.f), // Normal
-		CVector4( 1.f, 0.f, 0.f, 0.f), // Tangent
-		CVector4(01.f, 1.f, 0.f, 0.f), // Bitangent
-		0.f, // U
-		0.f  // V
-		);
-
-	// Front
-	m_auIndexBuffer[0] = 0;
-	m_auIndexBuffer[1] = 2;
-	m_auIndexBuffer[2] = 1;
-
-	m_auIndexBuffer[3] = 1;
-	m_auIndexBuffer[4] = 2;
-	m_auIndexBuffer[5] = 3;
-
-	// Back
-	m_auIndexBuffer[6] = 4;
-	m_auIndexBuffer[7] = 5;
-	m_auIndexBuffer[8] = 6;
-
-	m_auIndexBuffer[9]  = 5;
-	m_auIndexBuffer[10] = 7;
-	m_auIndexBuffer[11] = 6;
-
-	int iOffset = 8;
-	// Right
-	m_auIndexBuffer[12] = 7 + iOffset;
-	m_auIndexBuffer[13] = 5 + iOffset;
-	m_auIndexBuffer[14] = 1 + iOffset;
-
-	m_auIndexBuffer[15] = 7 + iOffset;
-	m_auIndexBuffer[16] = 1 + iOffset;
-	m_auIndexBuffer[17] = 3 + iOffset;
-
-	// Left
-	m_auIndexBuffer[18] = 0 + iOffset;
-	m_auIndexBuffer[19] = 4 + iOffset;
-	m_auIndexBuffer[20] = 6 + iOffset;
-
-	m_auIndexBuffer[21] = 0 + iOffset;
-	m_auIndexBuffer[22] = 6 + iOffset;
-	m_auIndexBuffer[23] = 2 + iOffset;
-
-	iOffset = 16;
-	// Bottom
-	m_auIndexBuffer[24] = 6 + iOffset;
-	m_auIndexBuffer[25] = 7 + iOffset;
-	m_auIndexBuffer[26] = 2 + iOffset;
-
-	m_auIndexBuffer[27] = 2 + iOffset;
-	m_auIndexBuffer[28] = 7 + iOffset;
-	m_auIndexBuffer[29] = 3 + iOffset;
-
-	// Top
-	m_auIndexBuffer[30] = 5 + iOffset;
-	m_auIndexBuffer[31] = 4 + iOffset;
-	m_auIndexBuffer[32] = 0 + iOffset;
-
-	m_auIndexBuffer[33] = 5 + iOffset;
-	m_auIndexBuffer[34] = 0 + iOffset;
-	m_auIndexBuffer[35] = 1 + iOffset;
-}
