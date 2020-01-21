@@ -14,6 +14,7 @@ CDirectX12Base::~CDirectX12Base()
 {
 }
 
+// #IMPORTANT: DX vs. Vulkan
 void CDirectX12Base::Init(HWND hwnd)
 {
 	LogStart("DirectX MiniEngine Logfile", LogSource::DirectX);
@@ -256,7 +257,7 @@ void CDirectX12Base::Init(HWND hwnd)
 	// Draw triangles solid. Alternative: D3D12_FILL_MODE_WIREFRAME
 	pipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
 	// Only for left handed systems: D3D12_CULL_MODE_FRONT
-	pipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; // Later: D3D12_CULL_MODE_BACK
+	pipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK; // Later: D3D12_CULL_MODE_BACK
 	// TRUE for right handed systems
 	pipelineStateDesc.RasterizerState.FrontCounterClockwise = TRUE;
 	// Shadow mapping
@@ -284,6 +285,8 @@ void CDirectX12Base::Init(HWND hwnd)
 	LOG_CHECK_MSG("CreateGraphicsPipelineState", hresult);
 
 	// Create vertex data of the cube and pass them to the vertex buffer
+	m_fRatio = (float)swapChainDesc.Width / (float)swapChainDesc.Height;
+
 	m_pGeoCube = new CGeoCube();
 	m_pGeoCube->Init(1, 2, 3, CColor(1, 1, 0));
 	m_bufferVertex.Init(
@@ -351,7 +354,54 @@ void CDirectX12Base::Tick()
 	// Param 3: Descriptor range
 	// Param 4: Depth stencil descriptor
 	pCommandList->OMSetRenderTargets(1, &cpuDescrHandle, 0, 0);
-	CMat mCam(10.f, );
+
+	CMat mCam(10.f, MatConstruction_TranslateZ);
+	CMat mView = mCam;
+
+	// The View Component in model view projection system is the inverse of the camera matrix
+	mView.Inverse();
+	CMat mProj;
+
+	mProj.ProjFov(3.14159f / 5.5, m_fRatio, 0.1f, 1000.f);
+
+	CMat mModel = CMat(0.f, MatConstruction_TranslateZ);
+	
+	// Increments frames
+	static int S_TICK = 0;
+	S_TICK++;
+
+	// Rotation angle in radians
+	float fRotX = (float)S_TICK / 50.f;
+	float fRotY = (float)S_TICK / 231.3378f;
+	float fRotZ = (float)S_TICK / 113.27678f;
+
+	// Rotate cube
+	mModel.RotateX(fRotX);
+	CMat mRotY = CMat(fRotY, MatConstruction_RotateY);
+	CMat mRotZ = CMat(fRotZ, MatConstruction_RotateZ);
+
+	CMat_2_XMFLOAT4X4(mModel,	m_worldViewProj.mWorld);
+	CMat_2_XMFLOAT4X4(mView,	m_worldViewProj.mView);
+	CMat_2_XMFLOAT4X4(mProj,	m_worldViewProj.mProj);
+
+	XMMATRIX a = XMLoadFloat4x4(&m_worldViewProj.mProj);
+	a = XMMatrixTranspose(a);
+	XMStoreFloat4x4(&m_worldViewProj.mProj, a);
+
+	m_worldViewProj.f4LightDirection.x =  0.817f;
+	m_worldViewProj.f4LightDirection.y = -0.517f;
+	m_worldViewProj.f4LightDirection.z = -0.817f;
+	m_worldViewProj.f4LightDirection.w =  0.f;
+
+	CMat mYellow(1.f, 1.f, 0.f, MatConstructionFloat3_TranslateVersatile);
+	CMat_2_XMFLOAT4X4(mYellow, m_colorChanging.mColorChange);
+
+	m_bufferConstantColorEffects.Tick(pCommandList, (void*)&m_colorChanging);
+	m_bufferConstantWorldViewProj.Tick(pCommandList, (void*)&m_worldViewProj);
+	m_bufferVertex.Draw(pCommandList);
+	m_bufferIndex.Draw(pCommandList);
+
+	pCommandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
 
 	// Draw a triangle
 	// Param 1: Number of vertices

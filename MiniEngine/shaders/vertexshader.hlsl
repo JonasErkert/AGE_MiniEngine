@@ -29,6 +29,7 @@ cbuffer ObjectInfo : register(b0)
 	// Sum: 256 Bytes
 }
 
+// #IMPORTANT
 VS_Output main(VS_Input input)
 {
 	VS_Output output;

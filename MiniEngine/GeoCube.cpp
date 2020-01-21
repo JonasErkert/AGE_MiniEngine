@@ -161,7 +161,7 @@ void CGeoCube::Init(float fxSize, float fySize, float fzSize, CColor Color)
 	m_aVertex[14].fyNormal = 0.0f;
 	m_aVertex[14].fzNormal = 0.0f;
 
-	m_aVertex[15].fX = fxSizeHalf;
+	m_aVertex[15].fX = -fxSizeHalf;
 	m_aVertex[15].fY = -fySizeHalf;
 	m_aVertex[15].fZ = fzSizeHalf;
 	m_aVertex[15].fxNormal = -1.0f;
@@ -242,11 +242,11 @@ void CGeoCube::Init(float fxSize, float fySize, float fzSize, CColor Color)
 	m_aVertex[23].fyNormal = -1.0f;
 	m_aVertex[23].fzNormal = 0.0f;
 
-	m_aiIndex[24] = 23;
-	m_aiIndex[25] = 21;
-	m_aiIndex[26] = 22;
+	m_aiIndex[30] = 23;
+	m_aiIndex[31] = 21;
+	m_aiIndex[32] = 22;
 
-	m_aiIndex[27] = 23;
-	m_aiIndex[28] = 20;
-	m_aiIndex[29] = 21;
+	m_aiIndex[33] = 23;
+	m_aiIndex[34] = 20;
+	m_aiIndex[35] = 21;
 }

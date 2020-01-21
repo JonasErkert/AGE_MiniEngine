@@ -11,6 +11,7 @@
 #include "BufferVertex.h"
 #include "BufferIndex.h"
 #include "BufferConstant.h"
+#include "Mat.h"
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -81,4 +82,7 @@ private:
 	SColorChanging m_colorChanging;
 
 	D3D12_ROOT_PARAMETER m_aRootParamter[100];
+
+	// Ratio of width and height of the swapChainDesc
+	float m_fRatio = 0.f;
 };

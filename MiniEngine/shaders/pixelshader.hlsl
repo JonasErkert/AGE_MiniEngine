@@ -21,6 +21,7 @@ float4 main(PS_Input input) : SV_TARGET
 {
 	// Fractional (0...1) light amount from the original quantity
 	// Phong-Shading
+	// #IMPORTANT
 	float fShadingForce = mul(input.f4Normal, -input.f4LightDirection);
 
 	// Apply color changing matrix for color animation
